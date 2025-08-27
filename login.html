@@ -1,102 +1,98 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Life Predictor – Login</title>
+  <meta charset="UTF-8">
+  <title>Login / Register</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
-    input { margin: 6px 0; padding: 8px; width: 260px; }
-    button { margin: 8px 0; padding: 10px 16px; cursor: pointer; }
-    .card { border: 1px solid #ddd; padding: 16px; margin-bottom: 20px; max-width: 360px; }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .form-box { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; width: 300px; }
+    .message { color: green; }
+    .error { color: red; }
   </style>
 </head>
 <body>
   <h1>Life Predictor</h1>
 
-  <div class="card">
+  <!-- Registration -->
+  <div class="form-box">
     <h2>Register</h2>
-    <input id="r_name" placeholder="Name">
-    <input id="r_email" placeholder="Email">
-    <input id="r_password" type="password" placeholder="Password">
+    <input id="reg-name" placeholder="Name"><br><br>
+    <input id="reg-email" type="email" placeholder="Email"><br><br>
+    <input id="reg-pass" type="password" placeholder="Password"><br><br>
     <button onclick="register()">Register</button>
+    <p id="register-msg"></p>
   </div>
 
-  <div class="card">
-    <h2>User Login</h2>
-    <input id="l_email" placeholder="Email">
-    <input id="l_password" type="password" placeholder="Password">
+  <!-- Login -->
+  <div class="form-box">
+    <h2>Login</h2>
+    <input id="login-email" type="email" placeholder="Email"><br><br>
+    <input id="login-pass" type="password" placeholder="Password"><br><br>
     <button onclick="login()">Login</button>
+    <p id="login-msg"></p>
   </div>
 
-  <div class="card">
-    <h2>Admin Login (same endpoint)</h2>
-    <input id="a_email" placeholder="Admin Email">
-    <input id="a_password" type="password" placeholder="Admin Password">
-    <button onclick="adminLogin()">Login as Admin</button>
-  </div>
+<script>
+const API_BASE = "https://life-predictor.onrender.com"; // or http://127.0.0.1:8000 locally
 
-  <script>
-    const API_BASE = "https://life-predictor.onrender.com";
+async function register() {
+  const name = document.getElementById("reg-name").value;
+  const email = document.getElementById("reg-email").value;
+  const password = document.getElementById("reg-pass").value;
+  const msg = document.getElementById("register-msg");
 
-    async function register() {
-      const payload = {
-        name: document.getElementById("r_name").value.trim(),
-        email: document.getElementById("r_email").value.trim(),
-        password: document.getElementById("r_password").value
-      };
-      const res = await fetch(`${API_BASE}/register`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      alert(data.message || data.detail || "Registered");
+  msg.textContent = "Registering...";
+
+  try {
+    const res = await fetch(`${API_BASE}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      msg.textContent = "✅ Account created successfully! You can now login.";
+      msg.className = "message";
+    } else {
+      msg.textContent = "❌ " + (data.detail || "Registration failed.");
+      msg.className = "error";
     }
+  } catch {
+    msg.textContent = "❌ Network error.";
+    msg.className = "error";
+  }
+}
 
-    async function loginGeneric(email, password, onSuccess) {
-      const form = new URLSearchParams();
-      form.append("username", email);   // OAuth2 expects 'username'
-      form.append("password", password);
+async function login() {
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-pass").value;
+  const msg = document.getElementById("login-msg");
 
-      const res = await fetch(`${API_BASE}/login`, {
-        method: "POST",
-        headers: {"Content-Type": "application/x-www-form-urlencoded"},
-        body: form.toString()
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Login failed");
-        return;
-      }
-      const data = await res.json();
+  msg.textContent = "Logging in...";
+
+  try {
+    const res = await fetch(`${API_BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ username: email, password })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
       localStorage.setItem("token", data.access_token);
-      localStorage.setItem("is_admin", data.is_admin ? "1" : "0");
-      onSuccess && onSuccess();
+      msg.textContent = "✅ Login successful! Redirecting...";
+      msg.className = "message";
+      setTimeout(() => window.location.href = "index.html", 1000);
+    } else {
+      msg.textContent = "❌ Invalid email or password.";
+      msg.className = "error";
     }
-
-    function login() {
-      const email = document.getElementById("l_email").value.trim();
-      const password = document.getElementById("l_password").value;
-      loginGeneric(email, password, () => {
-        window.location.href = "index.html";
-      });
-    }
-
-    function adminLogin() {
-      const email = document.getElementById("a_email").value.trim();
-      const password = document.getElementById("a_password").value;
-      loginGeneric(email, password, async () => {
-        // Fetch and show submissions just to confirm admin works
-        try {
-          const res = await fetch(`${API_BASE}/admin/submissions`, {
-            headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-          });
-          const data = await res.json();
-          alert("Admin OK. Total submissions: " + (Array.isArray(data) ? data.length : 0));
-        } catch (e) {}
-        window.location.href = "index.html";
-      });
-    }
-  </script>
+  } catch {
+    msg.textContent = "❌ Network error.";
+    msg.className = "error";
+  }
+}
+</script>
 </body>
 </html>

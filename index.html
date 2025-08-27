@@ -1,153 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Life Predictor – Prediction</title>
+  <meta charset="UTF-8">
+  <title>Life Predictor - Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
-    input, select { margin: 6px 0; padding: 8px; width: 280px; }
-    button { margin: 10px 0; padding: 10px 16px; cursor: pointer; }
-    .row { display: flex; gap: 24px; flex-wrap: wrap; }
-    .card { border: 1px solid #ddd; padding: 16px; margin-bottom: 20px; max-width: 340px; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .form-box { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; width: 400px; }
+    .message { color: green; }
+    .error { color: red; }
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <h1>Prediction Form</h1>
-    <div>
-      <button onclick="logout()">Logout</button>
-    </div>
+  <h1>Life Predictor Dashboard</h1>
+  <button onclick="logout()">Logout</button>
+  <p id="welcome"></p>
+
+  <!-- Prediction Form -->
+  <div class="form-box">
+    <h2>Submit Health Data</h2>
+    <label>Age: <input id="age" type="number"></label><br><br>
+    <label>BMI: <input id="bmi" type="number" step="0.1"></label><br><br>
+    <label>Smoker (0/1): <input id="smoker" type="number"></label><br><br>
+    <label>Stress Level: <input id="stress_level" type="number"></label><br><br>
+    <label>Chronic Disease (0/1): <input id="chronic_disease" type="number"></label><br><br>
+    <label>Diabetes (0/1): <input id="diabetes" type="number"></label><br><br>
+    <label>Income Level: <input id="income_level" type="number"></label><br><br>
+    <label>BP Systolic: <input id="bp_systolic" type="number"></label><br><br>
+    <label>BP Diastolic: <input id="bp_diastolic" type="number"></label><br><br>
+    <label>Vaccination Status (0/1): <input id="vaccination_status" type="number"></label><br><br>
+    <label>Pollution Index: <input id="pollution_index" type="number"></label><br><br>
+    <label>Sleep Hours: <input id="sleep_hours" type="number" step="0.1"></label><br><br>
+    <label>Exercise Minutes: <input id="exercise_minutes" type="number"></label><br><br>
+    <label>Alcohol Units: <input id="alcohol_units" type="number"></label><br><br>
+    <label>Diet Quality: <input id="diet_quality" type="number"></label><br><br>
+    <label>Work Hours: <input id="work_hours" type="number"></label><br><br>
+    <label>Screen Time: <input id="screen_time" type="number"></label><br><br>
+    <label>Social Activity: <input id="social_activity" type="number"></label><br><br>
+
+    <button onclick="submitData()">Submit</button>
+    <p id="prediction-msg"></p>
+    <a id="pdf-link" style="display:none;" target="_blank">📄 Download PDF</a>
   </div>
 
-  <div class="row">
-    <div class="card">
-      <h3>Vitals & Lifestyle</h3>
-      <input id="age" type="number" placeholder="Age">
-      <input id="bmi" type="number" step="0.1" placeholder="BMI">
-      <label>Smoker:</label>
-      <select id="smoker"><option value="0">No</option><option value="1">Yes</option></select>
-      <input id="stress_level" type="number" placeholder="Stress Level (1-10)">
-      <label>Chronic Disease:</label>
-      <select id="chronic_disease"><option value="0">No</option><option value="1">Yes</option></select>
-      <label>Diabetes:</label>
-      <select id="diabetes"><option value="0">No</option><option value="1">Yes</option></select>
-      <input id="diet_quality" type="number" placeholder="Diet Quality (1-10)">
-    </div>
+<script>
+const API_BASE = "https://life-predictor.onrender.com";
+const token = localStorage.getItem("token");
 
-    <div class="card">
-      <h3>Work & Activity</h3>
-      <input id="exercise_minutes" type="number" placeholder="Exercise Minutes per Week">
-      <input id="work_hours" type="number" placeholder="Work Hours per Week">
-      <input id="sleep_hours" type="number" step="0.1" placeholder="Sleep Hours">
-      <input id="screen_time" type="number" placeholder="Screen Time (hrs/day)">
-      <input id="social_activity" type="number" placeholder="Social Activity (days/week)">
-    </div>
+if (!token) {
+  window.location.href = "login.html";
+}
 
-    <div class="card">
-      <h3>Medical & Environment</h3>
-      <input id="income_level" type="number" placeholder="Income Level (1-4)">
-      <input id="bp_systolic" type="number" placeholder="BP Systolic">
-      <input id="bp_diastolic" type="number" placeholder="BP Diastolic">
-      <label>Vaccination Status:</label>
-      <select id="vaccination_status"><option value="0">Not up to date</option><option value="1">Up to date</option></select>
-      <input id="pollution_index" type="number" placeholder="Pollution Index">
-      <input id="alcohol_units" type="number" placeholder="Alcohol Units per Week">
-    </div>
-  </div>
+document.getElementById("welcome").textContent = "Welcome! Submit your details below.";
 
-  <button onclick="submitPrediction()">Submit Prediction</button>
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "login.html";
+}
 
-  <div id="result"></div>
+async function submitData() {
+  const msg = document.getElementById("prediction-msg");
+  msg.textContent = "Submitting...";
 
-  <script>
-    const API_BASE = "https://life-predictor.onrender.com";
-    const token = localStorage.getItem("token");
+  const payload = {
+    age: +document.getElementById("age").value,
+    bmi: +document.getElementById("bmi").value,
+    smoker: +document.getElementById("smoker").value,
+    stress_level: +document.getElementById("stress_level").value,
+    chronic_disease: +document.getElementById("chronic_disease").value,
+    diabetes: +document.getElementById("diabetes").value,
+    income_level: +document.getElementById("income_level").value,
+    bp_systolic: +document.getElementById("bp_systolic").value,
+    bp_diastolic: +document.getElementById("bp_diastolic").value,
+    vaccination_status: +document.getElementById("vaccination_status").value,
+    pollution_index: +document.getElementById("pollution_index").value,
+    sleep_hours: +document.getElementById("sleep_hours").value,
+    exercise_minutes: +document.getElementById("exercise_minutes").value,
+    alcohol_units: +document.getElementById("alcohol_units").value,
+    diet_quality: +document.getElementById("diet_quality").value,
+    work_hours: +document.getElementById("work_hours").value,
+    screen_time: +document.getElementById("screen_time").value,
+    social_activity: +document.getElementById("social_activity").value,
+  };
 
-    // Guard route
-    if (!token) {
-      alert("You must login first!");
-      window.location.href = "login.html";
+  try {
+    const res = await fetch(`${API_BASE}/submit`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      msg.textContent = "✅ Prediction: " + data.prediction;
+      msg.className = "message";
+      const link = document.getElementById("pdf-link");
+      link.href = `${API_BASE}/download/${data.id}?token=${token}`;
+      link.style.display = "inline";
+    } else {
+      msg.textContent = "❌ " + (data.detail || "Submission failed.");
+      msg.className = "error";
     }
-
-    function logout() {
-      localStorage.removeItem("token");
-      localStorage.removeItem("is_admin");
-      window.location.href = "login.html";
-    }
-
-    async function submitPrediction() {
-      const payload = {
-        age: +document.getElementById("age").value,
-        bmi: +document.getElementById("bmi").value,
-        smoker: +document.getElementById("smoker").value,
-        stress_level: +document.getElementById("stress_level").value,
-        chronic_disease: +document.getElementById("chronic_disease").value,
-        diabetes: +document.getElementById("diabetes").value,
-        income_level: +document.getElementById("income_level").value,
-        bp_systolic: +document.getElementById("bp_systolic").value,
-        bp_diastolic: +document.getElementById("bp_diastolic").value,
-        vaccination_status: +document.getElementById("vaccination_status").value,
-        pollution_index: +document.getElementById("pollution_index").value,
-        sleep_hours: +document.getElementById("sleep_hours").value,
-        exercise_minutes: +document.getElementById("exercise_minutes").value,
-        alcohol_units: +document.getElementById("alcohol_units").value,
-        diet_quality: +document.getElementById("diet_quality").value,
-        work_hours: +document.getElementById("work_hours").value,
-        screen_time: +document.getElementById("screen_time").value,
-        social_activity: +document.getElementById("social_activity").value
-      };
-
-      // basic client-side check
-      if (Object.values(payload).some(v => Number.isNaN(v))) {
-        alert("Please fill in all fields with valid numbers.");
-        return;
-      }
-
-      const res = await fetch(`${API_BASE}/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Failed to submit");
-        return;
-      }
-
-      const data = await res.json();
-      const subId = data.id;
-
-      // Build a Download button that performs an authenticated fetch and downloads the PDF
-      document.getElementById("result").innerHTML = `
-        <h2>Prediction: ${data.prediction}</h2>
-        <button id="dlBtn">Download PDF</button>
-      `;
-
-      document.getElementById("dlBtn").onclick = async () => {
-        const pdfRes = await fetch(`${API_BASE}/download/${subId}`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (!pdfRes.ok) {
-          const err = await pdfRes.json().catch(() => ({}));
-          alert(err.detail || "Download failed");
-          return;
-        }
-        const blob = await pdfRes.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `submission_${subId}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      };
-    }
-  </script>
+  } catch {
+    msg.textContent = "❌ Network error.";
+    msg.className = "error";
+  }
+}
+</script>
 </body>
 </html>
+
