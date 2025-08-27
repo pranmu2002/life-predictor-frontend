@@ -33,7 +33,16 @@
   </div>
 
 <script>
-const API_BASE = "https://life-predictor.onrender.com"; // or http://127.0.0.1:8000 locally
+// 🔹 Detect API base
+let API_BASE;
+if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+  API_BASE = "http://127.0.0.1:8000";   // local dev
+} else if (window.location.hostname.startsWith("192.168")) {
+  // LAN IP for testing on mobile in same WiFi
+  API_BASE = `http://${window.location.hostname}:8000`;
+} else {
+  API_BASE = "https://life-predictor.onrender.com"; // deployed backend
+}
 
 async function register() {
   const name = document.getElementById("reg-name").value;
@@ -86,7 +95,7 @@ async function login() {
       setTimeout(() => window.location.href = "index.html", 1000);
     } else {
       msg.textContent = "❌ Invalid email or password.";
-      msg.className = "error";
+      msg.className = "error";S
     }
   } catch {
     msg.textContent = "❌ Network error.";
@@ -96,3 +105,4 @@ async function login() {
 </script>
 </body>
 </html>
+
