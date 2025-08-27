@@ -1,72 +1,101 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Life Predictor - Login</title>
+  <meta charset="utf-8">
+  <title>Life Predictor – Login</title>
   <style>
-    body { font-family: Arial; margin: 20px; }
-    input { margin: 5px; padding: 5px; width: 200px; }
-    button { margin: 5px; padding: 8px; }
-    .section { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+    body { font-family: Arial, sans-serif; margin: 24px; }
+    input { margin: 6px 0; padding: 8px; width: 260px; }
+    button { margin: 8px 0; padding: 10px 16px; cursor: pointer; }
+    .card { border: 1px solid #ddd; padding: 16px; margin-bottom: 20px; max-width: 360px; }
   </style>
 </head>
 <body>
   <h1>Life Predictor</h1>
 
-  <!-- Register -->
-  <div class="section">
+  <div class="card">
     <h2>Register</h2>
-    <input id="r_name" placeholder="Name"><br>
-    <input id="r_email" placeholder="Email"><br>
-    <input id="r_password" type="password" placeholder="Password"><br>
+    <input id="r_name" placeholder="Name">
+    <input id="r_email" placeholder="Email">
+    <input id="r_password" type="password" placeholder="Password">
     <button onclick="register()">Register</button>
   </div>
 
-  <!-- User Login -->
-  <div class="section">
+  <div class="card">
     <h2>User Login</h2>
-    <input id="l_email" placeholder="Email"><br>
-    <input id="l_password" type="password" placeholder="Password"><br>
+    <input id="l_email" placeholder="Email">
+    <input id="l_password" type="password" placeholder="Password">
     <button onclick="login()">Login</button>
   </div>
 
-  <!-- Admin Login -->
-  <div class="section">
-    <h2>Admin Login</h2>
-    <input id="a_email" placeholder="Admin Email"><br>
-    <input id="a_password" type="password" placeholder="Admin Password"><br>
-    <button onclick="adminLogin()">Login</button>
+  <div class="card">
+    <h2>Admin Login (same endpoint)</h2>
+    <input id="a_email" placeholder="Admin Email">
+    <input id="a_password" type="password" placeholder="Admin Password">
+    <button onclick="adminLogin()">Login as Admin</button>
   </div>
 
   <script>
     const API_BASE = "https://life-predictor.onrender.com";
 
     async function register() {
-      let res = await fetch(`${API_BASE}/register/?name=${r_name.value}&email=${r_email.value}&password=${r_password.value}`, {method:"POST"});
-      let data = await res.json();
-      alert(data.message || JSON.stringify(data));
+      const payload = {
+        name: document.getElementById("r_name").value.trim(),
+        email: document.getElementById("r_email").value.trim(),
+        password: document.getElementById("r_password").value
+      };
+      const res = await fetch(`${API_BASE}/register`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      alert(data.message || data.detail || "Registered");
     }
 
-    async function login() {
-      let res = await fetch(`${API_BASE}/login/?email=${l_email.value}&password=${l_password.value}`, {method:"POST"});
-      let data = await res.json();
-      if (data.user_id) {
-        localStorage.setItem("user_id", data.user_id);
-        window.location.href = "index.html"; // redirect to prediction page
-      } else {
-        alert("Login failed");
+    async function loginGeneric(email, password, onSuccess) {
+      const form = new URLSearchParams();
+      form.append("username", email);   // OAuth2 expects 'username'
+      form.append("password", password);
+
+      const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: form.toString()
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Login failed");
+        return;
       }
+      const data = await res.json();
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("is_admin", data.is_admin ? "1" : "0");
+      onSuccess && onSuccess();
     }
 
-    async function adminLogin() {
-      let res = await fetch(`${API_BASE}/admin-login/?email=${a_email.value}&password=${a_password.value}`, {method:"POST"});
-      let data = await res.json();
-      if (data.is_admin) {
-        let subs = await fetch(`${API_BASE}/admin/submissions/`);
-        let all = await subs.json();
-        alert("All Submissions:\n" + JSON.stringify(all, null, 2));
-      } else {
-        alert("Admin login failed");
-      }
+    function login() {
+      const email = document.getElementById("l_email").value.trim();
+      const password = document.getElementById("l_password").value;
+      loginGeneric(email, password, () => {
+        window.location.href = "index.html";
+      });
+    }
+
+    function adminLogin() {
+      const email = document.getElementById("a_email").value.trim();
+      const password = document.getElementById("a_password").value;
+      loginGeneric(email, password, async () => {
+        // Fetch and show submissions just to confirm admin works
+        try {
+          const res = await fetch(`${API_BASE}/admin/submissions`, {
+            headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+          });
+          const data = await res.json();
+          alert("Admin OK. Total submissions: " + (Array.isArray(data) ? data.length : 0));
+        } catch (e) {}
+        window.location.href = "index.html";
+      });
     }
   </script>
 </body>
